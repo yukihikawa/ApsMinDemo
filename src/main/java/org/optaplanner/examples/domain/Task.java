@@ -1,5 +1,5 @@
 package org.optaplanner.examples.domain;
-/
+
 import org.optaplanner.core.api.domain.entity.PlanningEntity;
 import org.optaplanner.core.api.domain.variable.PlanningVariable;
 
