@@ -1,0 +1,43 @@
+package org.optaplanner.examples.solver;
+
+import org.optaplanner.core.api.score.buildin.hardsoft.HardSoftScoreHolder;
+import org.optaplanner.examples.domain.Task;
+import org.optaplanner.examples.domain.Machine;
+import org.optaplanner.examples.domain.TaskAssignment;
+
+global HardSoftScoreHolder scoreHolder;
+
+//硬约束规则，加工类型匹配，即任务只能分配到能执行该任务的机台上去
+rule "yarnTypeMatch"
+when
+	//对每一个(分配的机台并且机台加工类型不同于需要的加工类型的)任务，硬约束惩罚10000分
+    Task(machine != null, machine.yarnType != requiredYarnType)
+then
+    scoreHolder.addHardConstraintMatch(kcontext, -10000);
+end
+
+//硬约束规则，机台加工能力限制，即给机台分配的任务工作量必须小于等于机台生产能力
+rule "machineCapacity"
+when
+	//对机台上分配的任务进行工作量求和，如果大于机台工作能力，硬约束惩罚分数为超出的工作量数目
+    $machine : Machine($capacity : capacity)
+    accumulate(
+        Task(
+            machine == $machine,
+            $amount : amount);
+        $amountTotal : sum($amount);
+        $amountTotal > $capacity
+        )
+then
+    scoreHolder.addHardConstraintMatch(kcontext, $capacity - $amountTotal);
+end
+
+//软约束规则，机台开工成本，即成本只计算机台的开工成本，只要机台上分配任务就计算成本
+rule "machineCost_used"
+when
+	//对每个机台，只要上面分配任务，软约束惩罚减去该机台的成本
+    $machine : Machine($cost : cost)
+    exists Task(machine == $machine)
+then
+    scoreHolder.addSoftConstraintMatch(kcontext, -$cost);
+end
